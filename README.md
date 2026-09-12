@@ -1,106 +1,65 @@
-# ChurnGuard AI
+ML Mini Projects
+Two small, self-contained machine learning projects exploring regression regularization and market basket analysis — built and run in Google Colab.
 
-A machine learning system that predicts which telecom customers are likely to cancel their subscription (churn) — and explains *why* — so a retention team can step in before it's too late.
+Project 1: Regression Shrinkage Methods (Ridge vs Lasso)
+Compares three regression approaches — plain Linear Regression, Ridge (L2), and Lasso (L1) — on a synthetic grocery spending dataset, to see how each handles noisy, irrelevant features.
 
-Built on the IBM Telco Customer Churn dataset (7,043 customers).
+What It Does
+Generates a synthetic dataset of grocery transactions with realistic item-association patterns (e.g., people who buy Bread often also buy Butter)
+Adds several "noise" features that have no real relationship to the target, to test how each model handles irrelevant inputs
+Trains Linear Regression, Ridge, and Lasso to predict total spend from basket contents
+Compares model performance and, more importantly, compares the learned coefficients side by side
+Results
+Model	R² Score
+Linear Regression	0.9509
+Ridge (L2)	0.9507
+Lasso (L1)	0.8899
+Key finding: Lasso pushes the coefficients of the noise features completely to zero, effectively removing them from the model entirely. Ridge instead just shrinks their coefficients to be very small, but doesn't eliminate them. This is the core practical difference between L1 and L2 regularization — Lasso can perform automatic feature selection, Ridge cannot.
 
----
+A coefficient comparison chart (project1_shrinkage_coefficients.png) visualizes this: real features (Bread, Milk, Chicken, etc.) keep meaningful coefficient values across all three models, while the injected noise features collapse to (or near) zero specifically under Lasso.
 
-## Problem
+Tech Used
+scikit-learn — LinearRegression, Ridge, Lasso, StandardScaler, train_test_split
+NumPy / Pandas — synthetic data generation and manipulation
+Matplotlib — coefficient comparison visualization
+Project 2: Market Basket Analysis (Apriori / Association Rule Mining)
+Finds which grocery items are frequently bought together, using the classic Apriori algorithm — the same technique behind "customers who bought this also bought..." recommendations.
 
-Acquiring a new customer typically costs far more than retaining an existing one, yet most companies only find out a customer is unhappy after they've already left. ChurnGuard AI flips that — it scores every customer's churn risk in advance and surfaces the specific reasons behind that score, so retention efforts can be targeted instead of blanket.
+What It Does
+Generates a synthetic dataset of 2,000 grocery transactions with built-in purchase patterns (e.g., Bread → Butter, Milk → Eggs)
+One-hot encodes the transactions using TransactionEncoder
+Runs the Apriori algorithm to find frequent itemsets (combinations of items that appear together often enough to be meaningful)
+Extracts association rules from those itemsets — statements like "if a customer buys X, they are also likely to buy Y" — ranked by lift
+Results
+Top frequent itemsets included single items like Milk, Bread, and Eggs, as well as 2-item combinations like (Eggs, Butter).
 
-## What It Does
+Top association rules (sorted by lift) included patterns such as:
 
-1. **Cleans raw customer data** — fixes missing/incorrectly typed billing values
-2. **Engineers behavioral features** — tenure buckets, service-usage counts, contract-risk flags, spend ratios
-3. **Trains two models** — a Logistic Regression baseline and an XGBoost classifier
-4. **Explains every prediction** — uses SHAP to show which factors pushed a customer's risk up or down
-5. **Scores new customers on demand** — takes a single customer's record and returns a risk percentage with reasons
+Antecedent	Consequent	Support	Confidence	Lift
+Butter, Milk	Bread	0.1955	0.5891	2.0823
+Butter, Eggs	Bread	0.1955	0.7995	2.0823
+Bread, Milk	Butter	0.1955	0.6157	2.0186
+Bread, Eggs	Butter	0.1955	0.6400	2.0186
+Butter	Bread, Milk	0.2645	0.5939	1.5439
+Interpretation: A lift greater than 1 means the items are bought together more often than would be expected by chance — for example, customers who buy Butter and Milk together are over 2x more likely than average to also buy Bread.
 
-## Results
+Tech Used
+mlxtend — apriori, association_rules, TransactionEncoder
+NumPy / Pandas — synthetic data generation and manipulation
+How to Run
+Both projects were built and run in Google Colab. To run locally instead:
 
-| Metric | Score |
-|---|---|
-| ROC-AUC | 0.84 |
-| PR-AUC | 0.65 |
-| Recall (churn class) @ threshold 0.35 | 87% |
+bash
+pip install pandas numpy scikit-learn mlxtend matplotlib
 
-Contacting just the **top 10% highest-risk customers** catches roughly **29% of all actual churners** — a strong lift over contacting customers at random.
-
-The decision threshold (0.35 instead of the default 0.5) was chosen deliberately: in this business context, missing a real churner is more costly than a wasted retention offer, so the model is tuned to catch more true churners at the expense of a few extra false alarms.
-
-## Tech Stack
-
-- **Python** — core language
-- **Pandas** — data cleaning and feature engineering
-- **Scikit-learn** — baseline Logistic Regression model, train/test splitting, metrics
-- **XGBoost** — main gradient-boosted classifier
-- **SHAP** — model explainability (per-prediction feature attribution)
-- **Jupyter Notebook** — end-to-end interactive walkthrough
-- **Matplotlib** — EDA and SHAP visualizations
-
-## Project Structure
-
-```
-ChurnGuard-AI/
-├── data/
-│   └── telco_churn.csv              # Raw dataset
-├── models/
-│   ├── churnguard_xgb.joblib         # Trained XGBoost model
-│   └── feature_columns.joblib        # Saved feature schema for scoring
-├── 01_data_prep.py                   # Cleans raw data
-├── 02_feature_engineering.py         # Builds derived features
-├── 03_train_model.py                 # Trains + evaluates both models
-├── 04_explainability.py              # SHAP explanations for top-risk customers
-├── 05_score_new_customer.py          # Scores a single new customer
-├── ChurnGuard_AI_Walkthrough.ipynb   # Full pipeline, interactive, with charts
+# Then open the notebook and run all cells:
+jupyter notebook ML_Mini_Projects.ipynb
+Project Structure
+ML-Mini-Projects/
+├── ML_Mini_Projects.ipynb          # Both projects, in one notebook
+├── project1_shrinkage_coefficients.png   # Ridge vs Lasso coefficient chart
 └── README.md
-```
+What This Is / Isn't
+Both projects use synthetically generated data (not a real-world dataset), designed specifically to have known, injected patterns — this makes it easy to verify the models are actually learning what they're supposed to learn (e.g., confirming Lasso really does zero out the noise features we added on purpose). For a portfolio piece using real-world retail data, a public dataset like the Instacart Market Basket dataset would be a natural next step.
 
-## How to Run
 
-```bash
-# Set up environment
-python -m venv venv
-venv\Scripts\activate          # Windows
-source venv/bin/activate       # Mac/Linux
-
-# Install dependencies
-pip install pandas scikit-learn xgboost shap matplotlib jupyter nbformat
-
-# Run the pipeline
-python 01_data_prep.py
-python 02_feature_engineering.py
-python 03_train_model.py          # trains and saves the model
-python 04_explainability.py       # explains top-risk customers
-python 05_score_new_customer.py   # scores one example customer
-```
-
-Or open `ChurnGuard_AI_Walkthrough.ipynb` to run the entire pipeline interactively with EDA charts and SHAP visualizations.
-
-## Sample Output
-
-```
-Churn risk: 82.3%
-Top risk drivers:
-  - tenure = 2                (impact: +0.613)
-  - is_month_to_month = 1     (impact: +0.522)
-  - avg_charge_per_tenure = 95.5  (impact: +0.372)
-```
-
-This tells the retention team not just *that* a customer is at risk, but *why* — a new, month-to-month, high-spending customer — which points directly to the right intervention (e.g., a loyalty discount or a longer-term contract offer).
-
-## What This Is / Isn't
-
-This is a complete, working prototype covering the full ML lifecycle — data cleaning through explainable predictions. It is **not** yet a production system. Moving toward production would involve:
-
-- Replacing the static CSV with a live database/warehouse connection
-- Automating scoring on a schedule (cron job, Airflow, or an API endpoint)
-- Tuning the decision threshold against real business cost data
-- Monitoring for data drift and retraining periodically
-- Integrating risk scores into wherever the retention team actually works (CRM, dashboard, Slack alerts)
-
-## Dataset
-
-[IBM Telco Customer Churn dataset](https://github.com/IBM/telco-customer-churn-on-icp4d) — 7,043 customers, 20 features, publicly available for learning and prototyping.
